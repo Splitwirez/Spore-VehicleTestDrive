@@ -4,6 +4,8 @@
 #include "MyGameMode.h"
 #include "VTDCamera.h"
 #include "VTDEditorButton.h"
+#include <Spore\UserInterface.h>
+#include <Spore\Editors\EditorUI.h>
 
 App::ICamera* VTDCameraFactory(App::PropertyList* propList)
 {
@@ -65,9 +67,53 @@ member_detour(VTDEditorDetour, Editors::cEditor, bool())
 	}
 };
 
+
+virtual_detour(VTDEditorUIHandleUIMessageDetour, Editors::EditorUI, UTFWin::IWinProc, bool(UTFWin::IWindow*, const UTFWin::Message&))
+{
+	bool detoured(UTFWin::IWindow* pWindow, const UTFWin::Message& message)
+	{
+		bool retVal = original_function(this, pWindow, message); //run the original function first, so that the UI will actually function.
+		
+
+		intrusive_ptr<IWindow> testDriveButton = WindowManager.GetMainWindow()->FindWindowByID(0x70218642);
+		intrusive_ptr<IWindow> testDriveCover = WindowManager.GetMainWindow()->FindWindowByID(0x066FF240);
+			bool isskin = false;
+			if (Editors::GetEditor() != nullptr)
+			{
+				if (Editors::GetEditor()->mpPropList != nullptr)
+				{
+					if (App::Property::GetBool(Editors::GetEditor()->mpPropList.get(), 0x300DE90B, isskin))
+					{
+						if (!isskin)
+						{
+							if ((testDriveCover != nullptr) && (testDriveCover->IsVisible()))
+							{
+								App::ConsolePrintF("	testDriveCover");
+								testDriveCover->SetVisible(false);
+							}
+
+
+							if ((testDriveButton != nullptr) && (testDriveButton->GetFlags() & UTFWin::kWinFlagIgnoreMouse))
+							{
+								App::ConsolePrintF("	testDriveButton");
+								testDriveButton->AddWinProc(new VTDEditorButton); //set win proc for button
+								testDriveButton->SetEnabled(true);
+								testDriveButton->SetFlag(UTFWin::kWinFlagIgnoreMouse, false);
+								//testDriveButton->SetOpacity(testDriveButton.get(), 1); //un-comment to fix button opacity...but get ready to click "Ignore" a lot
+							}
+						}
+					}
+				}
+			}
+		//}
+		return retVal;
+	}
+};
+
 void AttachDetours()
 {
-	VTDEditorDetour::attach(GetAddress(Editors::cEditor, OnEnter));
+	VTDEditorUIHandleUIMessageDetour::attach(GetAddress(Editors::EditorUI, HandleUIMessage));
+	//VTDEditorDetour::attach(GetAddress(Editors::cEditor, OnEnter));
 	// Call the attach() method on any detours you want to add
 	// For example: cViewer_SetRenderType_detour::attach(GetAddress(cViewer, SetRenderType));
 }

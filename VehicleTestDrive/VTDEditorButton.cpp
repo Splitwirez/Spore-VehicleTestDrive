@@ -52,6 +52,7 @@ bool VTDEditorButton::HandleUIMessage(IWindow* window, const Message& message)
 	else { window->SetShadeColor(Math::Color(255, 255, 255, 255)); }
 	if (message.IsType(MessageType::kMsgButtonClick) || message.IsType(MessageType::kMsgButtonSelect))
 	{
+		App::ConsolePrintF("Test drive button clicked!");
 		auto selection = Editor.mpEditorModel->field_0C;
 		if (selection != ResourceKey(0, 0, 0)) //check if creation was even selected or not
 		{
